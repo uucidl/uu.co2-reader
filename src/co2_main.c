@@ -63,6 +63,11 @@ int main(int argc, char **argv)
      FILE *output_stream = stdout;
      if (output_filename) {
           output_stream = fopen(output_filename, "wb");
+	  if (!output_stream) {
+              fprintf(stderr, "ERROR: could not open file %s for writing.\n", output_filename);
+              return 1;
+          }
+	  // implicit fclose(output_stream), we let the OS do it for us
      }
      zyaura_record_output_to_stream(output_stream);
      return 0;
