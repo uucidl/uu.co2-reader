@@ -1,0 +1,2 @@
+@url: https://github.com/supercollider/hidapi/archive/80a10cee3d203c83696a4f7bfe0289f17a58deff.zip
+
