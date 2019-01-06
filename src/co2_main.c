@@ -20,7 +20,7 @@ static int zyaura_record_output_to_stream(FILE* stream);
 
 int main(int argc, char **argv)
 {
-     char *output_filename;
+     char *output_filename = NULL;
      /* parse args */ {
           int argi = 1;
           char *error = NULL;
