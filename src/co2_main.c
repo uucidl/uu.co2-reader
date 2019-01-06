@@ -1,7 +1,7 @@
-static char const *USAGE = "<program>[-o file.tsv]\n"
-     "This program collects co2 readings\n"
+static char const *USAGE = "Usage: <program>[-o file.tsv]\n"
+     "\nThis program collects co2 readings from Zyaura sensors.\n"
      "Options:\n"
-     "-o file.tsv: write to a tab-separated-value file (otherwise to standard output)\n";
+     "  -o file.tsv: write to a tab-separated-value file (otherwise to standard output)\n";
 
 enum ProgramOption
 {
@@ -41,6 +41,7 @@ int main(int argc, char **argv)
                int offset = 0;
                int error_first_offset = 0;
                int error_last_offset = 0;
+               fprintf(stderr, "ERROR: ");
                for (int i = 0; i < argc; i++) {
                     int n_or_error = fprintf(stderr, "%s%s", i>0?" ":"", argv[i]);
                     if (n_or_error < 0) exit(-1);
@@ -52,11 +53,11 @@ int main(int argc, char **argv)
                          error_last_offset = offset;
                     }
                }
-               fprintf(stderr, "\n%*s", error_first_offset, " ");
+               fprintf(stderr, "\nERROR: %*s", error_first_offset, " ");
                for (int i = error_first_offset; i < error_last_offset; i++) {
                     fprintf(stderr, "^");
                }
-               fprintf(stderr, " %s\n%s\n", error, USAGE);
+               fprintf(stderr, " %s\n\n%s\n", error, USAGE);
                return 1;
           }
      }
