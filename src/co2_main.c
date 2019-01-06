@@ -131,6 +131,17 @@ UU_USB_Device uu_find_holtek_zytemp();
 void uu_decrypt_holtek_zytemp_report(uint8_t key[8], uint8_t data[8]);
 ZyAuraReport unpack_holtek_zytemp_report(uint8_t decrypted_data[8]);
 
+#if defined(WIN32)
+struct tm* localtime_r(time_t *clock, struct tm *result)
+{
+    struct tm *p = localtime(clock);
+    if (p) {
+        *result = *p;
+    }
+    return p;
+}
+#endif
+
 int zyaura_record_output_to_stream(FILE *out)
 {
      assert(out);
