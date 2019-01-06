@@ -117,7 +117,7 @@ typedef enum ZyAuraOpcode
 } ZyAuraOpcode;
 
 typedef struct ZyAuraReport
-{ 
+{
      ZyAuraOpcode opcode;
      uint16_t raw_value;
      union {
@@ -162,7 +162,7 @@ int zyaura_record_output_to_stream(FILE *out)
           time_t now_unix = time(NULL);
           struct tm now_localtime;
           localtime_r(&now_unix, &now_localtime);
-    
+
           uu_decrypt_holtek_zytemp_report(key, data);
           if (data[4] != 0x0d) {
                fprintf(stderr, "ERROR: missing terminator\n");
@@ -176,14 +176,14 @@ int zyaura_record_output_to_stream(FILE *out)
           char time_string_buffer[4096];
           size_t time_string_len = strftime(&time_string_buffer[0], sizeof time_string_buffer, "%Y-%m-%dT%H:%M:%S", &now_localtime);
           assert(time_string_len);
-    
+
           struct ZyAuraReport report = unpack_holtek_zytemp_report(data);
           switch (report.opcode) {
           case ZyAuraOpcode_Relative_CO2_Concentration: {
                fprintf(out, "%*s\tCO2\t%d\n", (int)time_string_len, time_string_buffer, report.co2_in_ppm);
                break;
           }
-      
+
           case ZyAuraOpcode_Temperature: {
                fprintf(out, "%*s\tTemperature\t%f\n", (int)time_string_len, time_string_buffer, report.temperature_in_C);
                break;
@@ -214,14 +214,14 @@ int zyaura_record_output_to_stream(FILE *out)
 #endif
                break;
           }
-      
+
           default: {
                fprintf(out, "%*s\t<Unexpected Opcode: 0x%x '%c'\t%d\n", (int)time_string_len, time_string_buffer, report.opcode, (char) report.opcode, report.raw_value);
                break;
           }
           }
-    
-          if (now_unix - prev_time_unix > 0)  fflush(out);   
+
+          if (now_unix - prev_time_unix > 0)  fflush(out);
           prev_time_unix = now_unix;
      }
 
@@ -262,7 +262,7 @@ void uu_decrypt_holtek_zytemp_report(uint8_t key[8], uint8_t data[8])
 
      for (int i = 0; i < 8; i++) {
           data[i] = 0x100 + temp1[i] - ctemp[i];
-     }    
+     }
 }
 
 ZyAuraReport unpack_holtek_zytemp_report(uint8_t decrypted_data[8])
@@ -284,7 +284,7 @@ ZyAuraReport unpack_holtek_zytemp_report(uint8_t decrypted_data[8])
      default:
           break;
      }
-  
+
      return Result;
 }
 
@@ -310,7 +310,7 @@ ZyAuraReport unpack_holtek_zytemp_report(uint8_t decrypted_data[8])
 // +-----------+------------------------------+---------------+
 // | 0x4d      | Altitude/Emissivity          |               |
 // | 0x5d ']'  | Setting or writing parameter | ComMasterMode |
-// | 0x65 'e'  | Gain parameter               | ComMasterMode | 
+// | 0x65 'e'  | Gain parameter               | ComMasterMode |
 //
 // 0x5d, msb: uint16, lsb: uint16, checksum: uint16, 0xd
 // When pumping the reference gas at 100ppm, write FF9C (-100 decimal) into the 0x5d parameter
@@ -320,4 +320,4 @@ ZyAuraReport unpack_holtek_zytemp_report(uint8_t decrypted_data[8])
 // EndUserMaster > ComMaster = 0x02 0x51 0x30 0x32 0x30 0x31 0x35 0x34 0x0d
 // ComMaster > Slave = 0x23 0x31 0x35 0x0d
 // Slave > ComMaster = 0x23 0x31 0x35 0x0d
-// ComMaster > EndUserMaster = 0x02 0x51 0x30 0x32 0x34 0x31 0x39 0x34 0x0D 
+// ComMaster > EndUserMaster = 0x02 0x51 0x30 0x32 0x34 0x31 0x39 0x34 0x0D
