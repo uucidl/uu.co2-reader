@@ -128,7 +128,7 @@ typedef struct ZyAuraReport
 } ZyAuraReport;
 
 UU_USB_Device uu_find_holtek_zytemp();
-void uu_decrypt_holtek_zytemp_report(uint8_t key[8], uint8_t data[8]);
+void uu_decrypt_holtek_zytemp_report(uint8_t const key[8], uint8_t data[8]);
 ZyAuraReport unpack_holtek_zytemp_report(uint8_t decrypted_data[8]);
 
 #if defined(WIN32)
@@ -154,22 +154,47 @@ int zyaura_record_output_to_stream(FILE *out)
      }
 
      // Send encoding key and start device
-     unsigned char key[] = {0xc4, 0xc6, 0xc0, 0x92, 0x40, 0x23, 0xdc, 0x96};
-     int num_bytes_or_error = hid_send_feature_report(device.handle, key, sizeof key);
-     if (num_bytes_or_error != sizeof key) {
-          UU_HIDAPI_GUARD(num_bytes_or_error, "hidapi: device initialization (feature report)");
-          exit(1);
+     unsigned char const key[] = {0xc4, 0xc6, 0xc0, 0x92, 0x40, 0x23, 0xdc, 0x96};
+     {
+        unsigned char msg[sizeof key + 1] = { 0x00, };
+        // "The first byte of data[] must contain the Report-ID (note that hidapi
+        // on the mac doesn't have this requirement, and silently drops the
+        // initial zero)
+        memcpy(&msg[1], &key[0], sizeof key);
+
+        int num_bytes_or_error = hid_send_feature_report(device.handle, msg, sizeof msg);
+        if (num_bytes_or_error != sizeof msg) {
+            UU_HIDAPI_GUARD(num_bytes_or_error, "hidapi: device initialization (feature report)");
+            exit(1);
+        }
      }
 
      time_t prev_time_unix = time(NULL);
      fprintf(out, "Time\tReading\tValue\n");
      for (;;) {
-          unsigned char data[8];
-          int num_bytes_or_error = hid_read(device.handle, data, sizeof data);
-          if (num_bytes_or_error != sizeof data) {
+          enum { INPUT_REPORT_SIZE = 8 };
+          unsigned char msg[1 + INPUT_REPORT_SIZE] = {0, };
+          // ^ "the first byte will contain the report number if the device
+          // uses numbered reports"
+          int num_bytes_or_error = hid_read(device.handle, msg, sizeof msg);
+          if (num_bytes_or_error != sizeof msg &&
+              num_bytes_or_error != INPUT_REPORT_SIZE) {
                UU_HIDAPI_GUARD(num_bytes_or_error, "hidapi: reading report");
                exit(1);
           }
+          unsigned char data[INPUT_REPORT_SIZE];
+          if (num_bytes_or_error == INPUT_REPORT_SIZE + 1) {
+               // this happens on windows, the report is prefixed with
+               // the report-id of zero:
+               if (msg[0] != 0) {
+                   fprintf(stderr, "ERROR: unexpected report from device (expected report-id 0)\n");
+                  exit(1);
+               }
+               memcpy(&data[0], &msg[1], sizeof data);
+          } else {
+               memcpy(&data[0], &msg[0], sizeof data);
+          }
+
           time_t now_unix = time(NULL);
           struct tm now_localtime;
           localtime_r(&now_unix, &now_localtime);
@@ -221,6 +246,8 @@ int zyaura_record_output_to_stream(FILE *out)
           case ZyAuraOpcode_Unknown_n:
           case ZyAuraOpcode_Unknown_q: {
 #if 0
+               // These report numbers are received regularly, but we don't know
+               // what they mean, and what info they're carrying.
                fprintf(out, "<Unknown Opcode: 0x%x '%c'>\t%d\n", report.opcode, (char) report.opcode, report.raw_value);
 #endif
                break;
@@ -248,7 +275,7 @@ UU_USB_Device uu_find_holtek_zytemp()
 }
 
 
-void uu_decrypt_holtek_zytemp_report(uint8_t key[8], uint8_t data[8])
+void uu_decrypt_holtek_zytemp_report(uint8_t const key[8], uint8_t data[8])
 {
      int shuffle[8] = { 2, 4, 0, 7, 1, 6, 5, 3 };
 
