@@ -1,6 +1,32 @@
 # uu.co2-reader
 
-There's quite a few CO2 monitors which are based on the ZyAura ZGm053U product/chip.
+Console based program to read and save CO2 concentrations and save
+temperature measurements.
 
-This console based program reads CO2 concentration and temperature measurements and
-dumps them onto the disk or console.
+Supported platforms:
+- Windows
+- Linux
+- Macos
+
+Supported sensors:
+
+All CO2 monitors based on the ZyAura ZGm053U product/chip.
+
+# Usage
+
+```
+<program>[-o file.tsv]
+This program collects co2 readings from Zyaura sensors.
+Options:
+  -o file.tsv: write to a tab-separated-value file (otherwise to standard output)
+```
+
+# Compilation
+
+- build.bat for Windows
+- co2_build_linux.sh for Linux
+- co2_build_macos.sh for Macos
+
+For all of these, a valid compiler is expected to be available the shell's
+environment.
+
