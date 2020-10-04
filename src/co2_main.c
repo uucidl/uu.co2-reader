@@ -1,11 +1,13 @@
 static char const *USAGE = "Usage: <program>[-o file.tsv]\n"
      "\nThis program collects co2 readings from Zyaura sensors.\n"
      "Options:\n"
-     "  -o file.tsv: write to a tab-separated-value file (otherwise to standard output)\n";
+     "  -o file.tsv: write to a tab-separated-value file (otherwise to standard output)\n"
+     "  -a: force an output on every read (otherwise skip if value unchanged)\n";
 
 enum ProgramOption
 {
      ProgramOption_OutputFile = 'o',
+     ProgramOption_OutputEveryReading = 'a',
      NumProgramOptions,
 };
 
@@ -16,11 +18,12 @@ enum ProgramOption
 #include <string.h>
 #include <time.h>
 
-static int zyaura_record_output_to_stream(FILE* stream);
+static int zyaura_record_output_to_stream(FILE* stream, int force_output_even_without_change);
 
 int main(int argc, char **argv)
 {
      char *output_filename = NULL;
+     int force_output_even_without_change = 0;
      /* parse args */ {
           int argi = 1;
           char *error = NULL;
@@ -33,6 +36,8 @@ int main(int argc, char **argv)
                     } else {
                          error = "Expected filename argument to -o";
                     }
+	       } else if (arg[0] == '-' && arg[1] == ProgramOption_OutputEveryReading && !arg[2]) {
+		    force_output_even_without_change = 1;
                } else {
                     error = "Unknown argument";
                }
@@ -70,7 +75,7 @@ int main(int argc, char **argv)
           }
 	  // implicit fclose(output_stream), we let the OS do it for us
      }
-     zyaura_record_output_to_stream(output_stream);
+     zyaura_record_output_to_stream(output_stream, force_output_even_without_change);
      return 0;
 }
 
@@ -142,7 +147,7 @@ struct tm* localtime_r(time_t *clock, struct tm *result)
 }
 #endif
 
-int zyaura_record_output_to_stream(FILE *out)
+int zyaura_record_output_to_stream(FILE *out, int force_output_even_without_change)
 {
      assert(out);
      int rc = -1;
@@ -171,6 +176,8 @@ int zyaura_record_output_to_stream(FILE *out)
 
      time_t prev_time_unix = time(NULL);
      fprintf(out, "Time\tReading\tValue\n");
+     int last_co2_in_ppm = 0; // invalid value
+     float last_temperature_in_C = 0.0/0.0; // invalid value
      for (;;) {
           enum { INPUT_REPORT_SIZE = 8 };
           unsigned char msg[1 + INPUT_REPORT_SIZE] = {0, };
@@ -216,12 +223,18 @@ int zyaura_record_output_to_stream(FILE *out)
           struct ZyAuraReport report = unpack_holtek_zytemp_report(data);
           switch (report.opcode) {
           case ZyAuraOpcode_Relative_CO2_Concentration: {
-               fprintf(out, "%*s\tCO2\t%d\n", (int)time_string_len, time_string_buffer, report.co2_in_ppm);
+	       if (force_output_even_without_change || report.co2_in_ppm != last_co2_in_ppm) {
+		    last_co2_in_ppm = report.co2_in_ppm;
+		    fprintf(out, "%*s\tCO2\t%d\n", (int)time_string_len, time_string_buffer, report.co2_in_ppm);
+	       }
                break;
           }
 
           case ZyAuraOpcode_Temperature: {
-               fprintf(out, "%*s\tTemperature\t%f\n", (int)time_string_len, time_string_buffer, report.temperature_in_C);
+	       if (force_output_even_without_change || report.temperature_in_C != last_temperature_in_C) {
+		    last_temperature_in_C = report.temperature_in_C;
+		    fprintf(out, "%*s\tTemperature\t%f\n", (int)time_string_len, time_string_buffer, report.temperature_in_C);
+	       }
                break;
           }
 
