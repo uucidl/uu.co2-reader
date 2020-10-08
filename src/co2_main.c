@@ -28,10 +28,9 @@ int main(int argc, char **argv)
           int argi = 1;
           char *error = NULL;
           while (argi < argc && !error) {
-               char *arg = argv[argi];
+               char *arg = argv[argi++];
                if (arg[0] == '-' && arg[1] == ProgramOption_OutputFile && !arg[2]) {
-                    if (argi + 1 < argc) {
-                         argi++;
+                    if (argi < argc) {
                          output_filename = argv[argi++];
                     } else {
                          error = "Expected filename argument to -o";
